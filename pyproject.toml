@@ -1,0 +1,12 @@
+[tool.poetry]
+name = "capacity-service"
+version = "0.1.0"
+description = "Compute 4-week rolling offered capacity (TEU) per week for a shipping corridor"
+authors = ["erfamm5@gmail.com"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
