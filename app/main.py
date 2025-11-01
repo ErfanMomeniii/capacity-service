@@ -1,11 +1,14 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 import logging
 import os
 
+from app.api.error_handlers import capacity_exception_handler, validation_exception_handler
 from app.db import init_db_pool, close_db_pool
 from app.api.capacity import router as capacity_router
+from app.exceptions import CapacityServiceException
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
@@ -16,6 +19,16 @@ app = FastAPI(
     title="Capacity Service",
     description="Compute 4-week rolling average offered capacity (TEU) per week.",
     version="1.0.0",
+)
+
+app.add_exception_handler(
+    CapacityServiceException,
+    capacity_exception_handler
+)
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler
 )
 
 app.add_middleware(
