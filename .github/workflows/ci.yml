@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  PYTHON_VERSION: "3.11"
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: test_db
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,82 +22,54 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
-
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov httpx
 
-      - name: Wait for Postgres
-        run: |
-          for i in $(seq 1 30); do
-            pg_isready -h 127.0.0.1 -p 5432 -U postgres && break
-            sleep 1
-          done
+    - name: Run database migrations
+      env:
+        TEST_DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:${{ env.POSTGRES_PORT }}/${{ env.POSTGRES_DB }}
+      run: |
+        # Apply database schema
+        PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql -h ${{ env.POSTGRES_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f db/schema.sql
 
-      - name: Run schema and load data
-        run: |
-          python - <<'PY'
-          import os, asyncpg, asyncio, pathlib
+    - name: Run tests
+      env:
+        TEST_DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:${{ env.POSTGRES_PORT }}/${{ env.POSTGRES_DB }}
+      run: |
+        pytest --cov=app --cov-report=term-missing --cov-report=xml -v tests/
 
-          BASE = pathlib.Path('.').resolve()
-          schema = (BASE / 'db' / 'schema.sql').read_text()
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: true
 
-          async def run():
-              conn = await asyncpg.connect(os.environ['TEST_DATABASE_URL'])
-              try:
-                  await conn.execute(schema)
-                  insert = """
-                  INSERT INTO sailings(
-                      service_version_and_roundtrip_identfiers,
-                      origin_service_version_and_master,
-                      destination_service_version_and_master,
-                      vessel_identifier,
-                      origin_port_code,
-                      destination_port_code,
-                      origin_at_utc,
-                      offered_capacity_teu
-                  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-                  """
-                  rows = [
-                      ("SRV001","china_main","north_europe_main","VSL001","CNSHA","NLRTM","2024-01-03 08:00:00+00",20000),
-                      ("SRV001","china_main","north_europe_main","VSL001","CNYTN","NLRTM","2024-01-10 08:00:00+00",18000),
-                      ("SRV002","china_main","north_europe_main","VSL002","CNSHA","NLAMS","2024-01-17 08:00:00+00",23000),
-                      ("SRV002","china_main","north_europe_main","VSL002","CNSHA","NLAMS","2024-02-01 08:00:00+00",22000),
-                      ("SRV003","china_main","north_europe_main","VSL003","CNSHA","DEHAM","2024-02-14 08:00:00+00",25000),
-                      ("SRV003","china_main","north_europe_main","VSL003","CNSHA","DEHAM","2024-02-21 08:00:00+00",26000),
-                      ("SRV004","china_main","north_europe_main","VSL004","CNSHA","GBFXT","2024-03-05 08:00:00+00",19000),
-                      ("SRV005","china_main","north_europe_main","VSL005","CNYTN","FRLEH","2024-03-19 08:00:00+00",21000),
-                  ]
-                  for r in rows:
-                      await conn.execute(insert, *r)
-              finally:
-                  await conn.close()
-
-          asyncio.get_event_loop().run_until_complete(run())
-          PY
-
-      - name: Run tests
-        run: pytest -q
+    - name: Check test coverage
+      run: |
+        coverage report --fail-under=80
