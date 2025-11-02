@@ -6,6 +6,8 @@ from datetime import date, datetime
 import asyncpg
 import redis.asyncio as aioredis
 from fastapi import HTTPException
+
+from app.exceptions import CapacityValidationException
 from app.repositories.capacity_repository import CapacityRepository
 from app.core.monitoring import CACHE_HITS_COUNT, CACHE_MISSES_COUNT
 from app.core import logging
@@ -60,7 +62,7 @@ class CapacityService:
             self, conn: asyncpg.Connection, start: date, end: date
     ) -> list[dict]:
         if start > end:
-            raise HTTPException(status_code=400, detail="date_from must be <= date_to")
+            raise CapacityValidationException("date_from must be <= date_to")
 
         key = self._make_cache_key(start, end)
 
