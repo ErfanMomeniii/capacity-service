@@ -7,7 +7,7 @@ import asyncpg
 import redis.asyncio as aioredis
 from fastapi import HTTPException
 
-from app.exceptions import CapacityValidationException
+from app.exceptions import CapacityValidationException, CapacityDatabaseException
 from app.repositories.capacity_repository import CapacityRepository
 from app.core.monitoring import CACHE_HITS_COUNT, CACHE_MISSES_COUNT
 from app.core import logging
@@ -81,7 +81,7 @@ class CapacityService:
         try:
             data = await self.repo.fetch_capacity(conn, start, end)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Failed to fetch capacity: {exc}")
+            raise CapacityDatabaseException(f"Database operation failed: {exc}") from exc
 
         if self.redis:
             try:
