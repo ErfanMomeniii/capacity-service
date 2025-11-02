@@ -3,20 +3,11 @@ import sys
 import asyncio
 import asyncpg
 import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from fastapi.testclient import TestClient
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.main import app
-
-# --------------------------
-# Event loop for async tests
-# --------------------------
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 # --------------------------
 # Database URL fixture
@@ -26,10 +17,9 @@ def database_url():
     return "postgresql://postgres:postgres@localhost:5432/test_db"
 
 # --------------------------
-# Database setup fixture
+# Async DB setup coroutine
 # --------------------------
-@pytest.fixture(scope="session")
-async def init_db(database_url):
+async def setup_db(database_url: str):
     conn = await asyncpg.connect(database_url)
     try:
         # Create schema
@@ -65,16 +55,19 @@ async def init_db(database_url):
         ]
         for row in test_data:
             await conn.execute(insert_sql, *row)
-
-        yield
     finally:
         await conn.close()
+
 
 # --------------------------
 # FastAPI TestClient fixture
 # --------------------------
 @pytest.fixture
-async def app_client(init_db, monkeypatch):
-    monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test_db")
+def app_client(monkeypatch, database_url):
+    monkeypatch.setenv("DATABASE_URL", database_url)
+
+    # Run async DB setup synchronously
+    asyncio.run(setup_db(database_url))
+
     with TestClient(app) as client:
         yield client
