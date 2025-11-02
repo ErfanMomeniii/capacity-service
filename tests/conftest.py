@@ -1,15 +1,15 @@
 import os
 import sys
 import asyncio
+from datetime import datetime
 import asyncpg
 import pytest_asyncio
-from datetime import datetime
 from httpx import AsyncClient
+from asgi_lifespan import LifespanManager
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
-
 
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
@@ -17,28 +17,18 @@ def event_loop():
     yield loop
     loop.close()
 
-
 @pytest_asyncio.fixture(scope="session")
 def database_url():
     return "postgresql://postgres:postgres@localhost:5432/test_db"
-
-
-@pytest_asyncio.fixture
-async def app_client(init_db, database_url):
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        yield client
-
 
 @pytest_asyncio.fixture(scope="session")
 async def init_db(database_url):
     conn = await asyncpg.connect(database_url)
     try:
-        # Create test database schema
         with open("db/schema.sql", "r") as f:
             schema_sql = f.read()
         await conn.execute(schema_sql)
 
-        # Insert test data
         insert_sql = """
         INSERT INTO sailings (
             origin,
@@ -65,9 +55,16 @@ async def init_db(database_url):
             ("CNYTN", "FRLEH", "CNYTN", "FRLEH", "SRV005", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-03-19T08:00:00+00:00"), 21000),
         ]
+
         for row in test_data:
             await conn.execute(insert_sql, *row)
 
         yield
     finally:
         await conn.close()
+
+@pytest_asyncio.fixture
+async def app_client(init_db, database_url):
+    async with LifespanManager(app):
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            yield client
