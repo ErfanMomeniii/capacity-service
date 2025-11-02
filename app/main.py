@@ -13,6 +13,7 @@ from app.api.exception_handlers import (
     validation_exception_handler,
 )
 from app.middleware.logging import RequestLoggingMiddleware
+from app.core.monitoring import router as monitoring_router
 
 load_dotenv()
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -52,5 +53,7 @@ async def on_shutdown():
 async def health():
     return {"status": "ok"}
 
+
+app.include_router(monitoring_router, prefix="", tags=["monitoring"])
 
 app.include_router(capacity_router, prefix="", tags=["capacity"])
