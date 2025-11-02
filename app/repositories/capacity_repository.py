@@ -3,6 +3,7 @@ from datetime import date
 import asyncpg
 from app.db.metrics import monitor_query
 from app.core import logging
+from app.exceptions import CapacityDatabaseException
 
 logger = logging.get_logger(__name__)
 
@@ -77,4 +78,11 @@ ORDER BY week_start_date;
                     "corridor": corridor
                 }
             )
+
+            if isinstance(e, (ConnectionError, OSError)) or "closed" in str(e).lower():
+                raise CapacityDatabaseException(str(e)) from e
+            import asyncpg
+            if isinstance(e, asyncpg.InterfaceError):
+                raise CapacityDatabaseException(str(e)) from e
+
             raise
