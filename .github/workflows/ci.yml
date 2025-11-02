@@ -14,6 +14,7 @@ env:
   POSTGRES_HOST: postgres
   POSTGRES_PORT: 5432
   TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/test_db
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,13 +26,13 @@ jobs:
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ env.POSTGRES_DB }}
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
@@ -47,17 +48,26 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov httpx psycopg2-binary
 
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Wait for Postgres
         run: |
           for i in {1..10}; do
-            pg_isready -h postgres -p 5432 -U postgres && break
+            pg_isready -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -U ${{ env.POSTGRES_USER }} && break
             echo "Waiting for Postgres..."
             sleep 3
           done
 
       - name: Run database migrations
         run: |
-          PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql -h ${{ env.POSTGRES_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f db/schema.sql
+          PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql \
+            -h ${{ env.POSTGRES_HOST }} \
+            -U ${{ env.POSTGRES_USER }} \
+            -d ${{ env.POSTGRES_DB }} \
+            -f db/schema.sql
 
       - name: Run tests
         run: pytest --cov=app --cov-report=term-missing --cov-report=xml -v tests/
