@@ -20,10 +20,10 @@ class TestCapacityAPI:
 
     def test_capacity_endpoint_invalid_dates(self, app_client):
         response = app_client.get("/capacity?date_from=2024-13-01&date_to=2024-03-31")
-        assert response.status_code == 422
+        assert response.status_code == 400
 
         response = app_client.get("/capacity?date_from=2024-01-01&date_to=invalid")
-        assert response.status_code == 422
+        assert response.status_code == 400
 
     def test_capacity_endpoint_missing_params(self, app_client):
         response = app_client.get("/capacity?date_from=2024-01-01")
