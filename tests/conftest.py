@@ -2,38 +2,37 @@ import os
 import sys
 import asyncio
 import asyncpg
-import pytest_asyncio
-from datetime import datetime
-from httpx import AsyncClient
+import pytest
+from datetime import datetime, date, timedelta
+from fastapi.testclient import TestClient
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app.main import app
 
-
-@pytest_asyncio.fixture(scope="session")
+# --------------------------
+# Event loop for async tests
+# --------------------------
+@pytest.fixture(scope="session")
 def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
-
-@pytest_asyncio.fixture(scope="session")
+# --------------------------
+# Database URL fixture
+# --------------------------
+@pytest.fixture(scope="session")
 def database_url():
     return "postgresql://postgres:postgres@localhost:5432/test_db"
 
-
-@pytest_asyncio.fixture
-async def app_client(init_db):
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        yield client
-
-
-@pytest_asyncio.fixture(scope="session")
+# --------------------------
+# Database setup fixture
+# --------------------------
+@pytest.fixture(scope="session")
 async def init_db(database_url):
     conn = await asyncpg.connect(database_url)
     try:
-        # Create test database schema
+        # Create schema
         with open("db/schema.sql", "r") as f:
             schema_sql = f.read()
         await conn.execute(schema_sql)
@@ -52,7 +51,6 @@ async def init_db(database_url):
             offered_capacity_teu
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """
-
         test_data = [
             ("NLRTM", "CNSHA", "NLRTM", "CNSHA", "SRV001", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-01-03T08:00:00+00:00"), 20000),
@@ -71,3 +69,11 @@ async def init_db(database_url):
         yield
     finally:
         await conn.close()
+
+# --------------------------
+# FastAPI TestClient fixture
+# --------------------------
+@pytest.fixture
+def app_client(init_db):
+    with TestClient(app) as client:
+        yield c
