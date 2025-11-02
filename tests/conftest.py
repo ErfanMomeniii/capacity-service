@@ -74,7 +74,7 @@ async def init_db(database_url):
 # FastAPI TestClient fixture
 # --------------------------
 @pytest.fixture
-def app_client(init_db, monkeypatch):
+async def app_client(init_db, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test_db")
     with TestClient(app) as client:
         yield client
