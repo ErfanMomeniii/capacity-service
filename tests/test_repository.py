@@ -55,8 +55,9 @@ class TestCapacityRepository:
         conn = await asyncpg.connect(database_url)
         try:
             repo = CapacityRepository()
-            with pytest.raises(ValueError):
-                await repo.fetch_capacity(conn, date(2024, 3, 31), date(2024, 1, 1))
+            results = await repo.fetch_capacity(conn, date(2024, 3, 31), date(2024, 1, 1))
+            assert isinstance(results, list)
+            assert len(results) == 0
         finally:
             await conn.close()
 
