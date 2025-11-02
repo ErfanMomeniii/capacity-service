@@ -52,15 +52,15 @@ async def init_db(database_url):
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """
         test_data = [
-            ("NLRTM", "CNSHA", "NLRTM", "CNSHA", "SRV001", "china_main", "north_europe_main",
+            ("china_main", "north_europe_main", "NLRTM", "CNSHA", "SRV001", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-01-03T08:00:00+00:00"), 20000),
-            ("NLAMS", "CNSHA", "NLAMS", "CNSHA", "SRV002", "china_main", "north_europe_main",
+            ("china_main", "north_europe_main", "NLAMS", "CNSHA", "SRV002", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-01-17T08:00:00+00:00"), 22000),
-            ("DEHAM", "CNSHA", "DEHAM", "CNSHA", "SRV003", "china_main", "north_europe_main",
+            ("china_main", "north_europe_main", "DEHAM", "CNSHA", "SRV003", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-02-21T08:00:00+00:00"), 26000),
-            ("GBFXT", "CNSHA", "GBFXT", "CNSHA", "SRV004", "china_main", "north_europe_main",
+            ("china_main", "north_europe_main", "GBFXT", "CNSHA", "SRV004", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-03-05T08:00:00+00:00"), 19000),
-            ("CNYTN", "FRLEH", "CNYTN", "FRLEH", "SRV005", "china_main", "north_europe_main",
+            ("china_main", "north_europe_main", "CNYTN", "FRLEH", "SRV005", "china_main", "north_europe_main",
              datetime.fromisoformat("2024-03-19T08:00:00+00:00"), 21000),
         ]
         for row in test_data:
