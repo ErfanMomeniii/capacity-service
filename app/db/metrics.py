@@ -1,10 +1,10 @@
 from functools import wraps
 import time
 from typing import Callable, Any
-import logging
 from prometheus_client import Histogram
+from app.core import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.get_logger(__name__)
 
 QUERY_DURATION = Histogram(
     'capacity_query_duration_seconds',
@@ -23,7 +23,7 @@ def monitor_query(query_name: str):
                 duration = time.time() - start_time
                 QUERY_DURATION.labels(query_name=query_name).observe(duration)
 
-                if duration > 1.0:  # Log slow queries
+                if duration > 1.0:
                     logger.warning(
                         "Slow query detected",
                         extra={

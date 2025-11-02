@@ -1,19 +1,24 @@
-# app/main.py
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-import logging
 import os
+from app.core import logging
 
-from app.api.error_handlers import capacity_exception_handler, validation_exception_handler
-from app.db import init_db_pool, close_db_pool
+from app.db.pool import init_db_pool, close_db_pool
 from app.api.capacity import router as capacity_router
 from app.exceptions import CapacityServiceException
+from app.api.exception_handlers import (
+    capacity_exception_handler,
+    validation_exception_handler,
+)
+from app.middleware.logging import RequestLoggingMiddleware
 
+load_dotenv()
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.setup_logging(LOG_LEVEL)
 
-logging.basicConfig(level=LOG_LEVEL)
-logger = logging.getLogger("capacity-service")
+logger = logging.get_logger("capacity-service")
 
 app = FastAPI(
     title="Capacity Service",
@@ -21,23 +26,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-app.add_exception_handler(
-    CapacityServiceException,
-    capacity_exception_handler
-)
+app.add_exception_handler(CapacityServiceException, capacity_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
-app.add_exception_handler(
-    RequestValidationError,
-    validation_exception_handler
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"],
+                   allow_headers=["*"])
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.on_event("startup")

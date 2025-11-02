@@ -1,10 +1,10 @@
 import time
 import uuid
+import logging
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.middleware.logging")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -14,21 +14,21 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         request.state.request_id = request_id
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        finally:
+            duration = round(time.time() - start_time, 4)
+            logger.info(
+                "Request processed",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration": duration,
+                    "status_code": getattr(response, "status_code", 500),
+                },
+            )
 
-        duration = time.time() - start_time
-
-        logger.info(
-            "Request processed",
-            extra={
-                "request_id": request_id,
-                "method": request.method,
-                "path": request.url.path,
-                "duration": duration,
-                "status_code": response.status_code
-            }
-        )
-
-        # Add request_id to response headers
+        # Add request ID header for tracing
         response.headers["X-Request-ID"] = request_id
         return response
