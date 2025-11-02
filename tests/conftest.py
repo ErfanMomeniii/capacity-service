@@ -40,28 +40,29 @@ async def init_db(database_url):
         # Insert test data
         insert_sql = """
         INSERT INTO sailings (
+            origin,
+            destination,
+            origin_port_code,
+            destination_port_code,
             service_version_and_roundtrip_identfiers,
             origin_service_version_and_master,
             destination_service_version_and_master,
-            vessel_identifier,
-            origin_port_code,
-            destination_port_code,
             origin_at_utc,
             offered_capacity_teu
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """
 
         test_data = [
-            ("SRV001", "china_main", "north_europe_main", "VSL001", "CNSHA",
-             "NLRTM", "2024-01-03 08:00:00+00", 20000),
-            ("SRV002", "china_main", "north_europe_main", "VSL002", "CNSHA",
-             "NLAMS", "2024-01-17 08:00:00+00", 22000),
-            ("SRV003", "china_main", "north_europe_main", "VSL003", "CNSHA",
-             "DEHAM", "2024-02-21 08:00:00+00", 26000),
-            ("SRV004", "china_main", "north_europe_main", "VSL004", "CNSHA",
-             "GBFXT", "2024-03-05 08:00:00+00", 19000),
-            ("SRV005", "china_main", "north_europe_main", "VSL005", "CNYTN",
-             "FRLEH", "2024-03-19 08:00:00+00", 21000),
+            ("NLRTM", "CNSHA", "NLRTM", "CNSHA", "SRV001", "china_main", "north_europe_main",
+             "2024-01-03 08:00:00+00", 20000),
+            ("NLAMS", "CNSHA", "NLAMS", "CNSHA", "SRV002", "china_main", "north_europe_main",
+             "2024-01-17 08:00:00+00", 22000),
+            ("DEHAM", "CNSHA", "DEHAM", "CNSHA", "SRV003", "china_main", "north_europe_main",
+             "2024-02-21 08:00:00+00", 26000),
+            ("GBFXT", "CNSHA", "GBFXT", "CNSHA", "SRV004", "china_main", "north_europe_main",
+             "2024-03-05 08:00:00+00", 19000),
+            ("CNYTN", "FRLEH", "CNYTN", "FRLEH", "SRV005", "china_main", "north_europe_main",
+             "2024-03-19 08:00:00+00", 21000),
         ]
 
         for row in test_data:
