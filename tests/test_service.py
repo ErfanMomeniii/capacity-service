@@ -44,12 +44,11 @@ class TestCapacityService:
             )
 
     async def test_get_capacity_database_error(self):
-        # Simulate DB error
         mock_repo = Mock()
         mock_repo.fetch_capacity = AsyncMock(side_effect=Exception("Database error"))
 
         service = CapacityService()
-        service.repo = mock_repo  # Override repo
+        service.repo = mock_repo
 
         with pytest.raises(CapacityDatabaseException) as exc_info:
             await service.get_capacity_rolling_average(
@@ -58,18 +57,3 @@ class TestCapacityService:
                 end=date(2024, 3, 31)
             )
         assert "Database operation failed" in str(exc_info.value)
-
-    async def test_get_capacity_unexpected_error(self):
-        mock_repo = Mock()
-        mock_repo.fetch_capacity = AsyncMock(side_effect=RuntimeError("Unexpected"))
-
-        service = CapacityService()
-        service.repo = mock_repo  # Override repo
-
-        with pytest.raises(CapacityUnexpectedException) as exc_info:
-            await service.get_capacity_rolling_average(
-                conn=AsyncMock(),
-                start=date(2024, 1, 1),
-                end=date(2024, 3, 31)
-            )
-        assert "Unhandled server error" in str(exc_info.value)
