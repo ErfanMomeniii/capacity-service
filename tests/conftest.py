@@ -24,8 +24,8 @@ def database_url():
 
 
 @pytest_asyncio.fixture
-async def app_client(init_db, database_url):
-    async with AsyncClient(base_url="http://localhost:8000") as client:
+async def app_client(init_db):
+    async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
 
