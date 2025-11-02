@@ -1,13 +1,20 @@
 import pytest
 import asyncpg
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta, datetime
 from app.repositories.capacity_repository import CapacityRepository
 from app.exceptions import CapacityDatabaseException
+from conftest import setup_db  # Use your existing setup_db coroutine
 
 
 @pytest.mark.asyncio
 class TestCapacityRepository:
-    async def test_fetch_capacity_success(self, init_db, database_url):
+
+    async def _prepare_db(self, database_url):
+        await setup_db(database_url)
+
+    async def test_fetch_capacity_success(self, database_url):
+        await self._prepare_db(database_url)
+
         conn = await asyncpg.connect(database_url)
         try:
             repo = CapacityRepository()
@@ -25,7 +32,6 @@ class TestCapacityRepository:
             }
             assert all(key in first_row for key in expected_keys)
 
-            # Verify data types
             assert isinstance(first_row["week_start_date"], date)
             assert isinstance(first_row["week_no"], int)
             assert isinstance(first_row["offered_capacity_teu"], (int, float))
@@ -37,7 +43,9 @@ class TestCapacityRepository:
         finally:
             await conn.close()
 
-    async def test_fetch_capacity_invalid_date_range(self, init_db, database_url):
+    async def test_fetch_capacity_invalid_date_range(self, database_url):
+        await self._prepare_db(database_url)
+
         conn = await asyncpg.connect(database_url)
         try:
             repo = CapacityRepository()
@@ -46,7 +54,9 @@ class TestCapacityRepository:
         finally:
             await conn.close()
 
-    async def test_fetch_capacity_future_dates(self, init_db, database_url):
+    async def test_fetch_capacity_future_dates(self, database_url):
+        await self._prepare_db(database_url)
+
         conn = await asyncpg.connect(database_url)
         try:
             repo = CapacityRepository()
@@ -60,7 +70,7 @@ class TestCapacityRepository:
 
     async def test_fetch_capacity_connection_error(self, database_url):
         repo = CapacityRepository()
+        conn = await asyncpg.connect(database_url)
+        await conn.close()
         with pytest.raises(CapacityDatabaseException):
-            conn = await asyncpg.connect(database_url)
-            await conn.close()
             await repo.fetch_capacity(conn, date(2024, 1, 1), date(2024, 3, 31))
