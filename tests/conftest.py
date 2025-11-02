@@ -1,8 +1,8 @@
 import os
 import sys
-import pytest
 import asyncio
 import asyncpg
+import pytest_asyncio
 from httpx import AsyncClient
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,26 +10,25 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.main import app
 
 
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 def database_url():
     return "postgresql://postgres:postgres@localhost:5432/test_db"
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def app_client(init_db, database_url):
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def init_db(database_url):
     conn = await asyncpg.connect(database_url)
     try:
