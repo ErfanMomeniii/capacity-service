@@ -1,6 +1,5 @@
 import os
 import json
-import logging
 import decimal
 from datetime import date, datetime
 
@@ -9,8 +8,9 @@ import redis.asyncio as aioredis
 from fastapi import HTTPException
 from app.repositories.capacity_repository import CapacityRepository
 from app.core.monitoring import CACHE_HITS_COUNT, CACHE_MISSES_COUNT
+from app.core import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.get_logger(__name__)
 
 CACHE_TTL_SECONDS = int(os.getenv("CAPACITY_CACHE_TTL", 6 * 60 * 60))  # 6 hours default
 

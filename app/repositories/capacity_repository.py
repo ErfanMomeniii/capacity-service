@@ -2,6 +2,9 @@ from typing import List, Dict, Optional
 from datetime import date
 import asyncpg
 from app.db.metrics import monitor_query
+from app.core import logging
+
+logger = logging.get_logger(__name__)
 
 class CapacityRepository:
     def __init__(self):
