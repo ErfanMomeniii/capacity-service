@@ -3,6 +3,7 @@ import sys
 import asyncio
 import asyncpg
 import pytest_asyncio
+from datetime import datetime
 from httpx import AsyncClient
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,17 +55,16 @@ async def init_db(database_url):
 
         test_data = [
             ("NLRTM", "CNSHA", "NLRTM", "CNSHA", "SRV001", "china_main", "north_europe_main",
-             "2024-01-03 08:00:00+00", 20000),
+             datetime.fromisoformat("2024-01-03T08:00:00+00:00"), 20000),
             ("NLAMS", "CNSHA", "NLAMS", "CNSHA", "SRV002", "china_main", "north_europe_main",
-             "2024-01-17 08:00:00+00", 22000),
+             datetime.fromisoformat("2024-01-17T08:00:00+00:00"), 22000),
             ("DEHAM", "CNSHA", "DEHAM", "CNSHA", "SRV003", "china_main", "north_europe_main",
-             "2024-02-21 08:00:00+00", 26000),
+             datetime.fromisoformat("2024-02-21T08:00:00+00:00"), 26000),
             ("GBFXT", "CNSHA", "GBFXT", "CNSHA", "SRV004", "china_main", "north_europe_main",
-             "2024-03-05 08:00:00+00", 19000),
+             datetime.fromisoformat("2024-03-05T08:00:00+00:00"), 19000),
             ("CNYTN", "FRLEH", "CNYTN", "FRLEH", "SRV005", "china_main", "north_europe_main",
-             "2024-03-19 08:00:00+00", 21000),
+             datetime.fromisoformat("2024-03-19T08:00:00+00:00"), 21000),
         ]
-
         for row in test_data:
             await conn.execute(insert_sql, *row)
 
