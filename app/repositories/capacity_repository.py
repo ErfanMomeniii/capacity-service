@@ -83,7 +83,7 @@ class CapacityRepository:
             logger.error(
                 "Database error while fetching capacity",
                 extra={
-                    "error": str(e),
+                    "error_msg": str(e),  # safe key
                     "start_date": str(start_date),
                     "end_date": str(end_date),
                     "corridor": corridor

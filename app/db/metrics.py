@@ -39,13 +39,14 @@ def monitor_query(query_name: str):
                     "Query failed",
                     extra={
                         "query_name": query_name,
-                        "error": str(e),
-                        "args": args,
-                        "kwargs": kwargs
+                        "error_msg": str(e),
+                        "parameters": {
+                            "args": [str(a) for a in args],  # safe conversion
+                            "kwargs": {k: str(v) for k, v in kwargs.items()}
+                        }
                     }
                 )
                 raise
-
         return wrapper
 
     return decorator
