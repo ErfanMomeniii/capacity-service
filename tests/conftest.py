@@ -22,7 +22,12 @@ def database_url():
 async def setup_db(database_url: str):
     conn = await asyncpg.connect(database_url)
     try:
-        # Create schema
+        # Drop schema first
+        with open("migrations/001_create_sailings_table.down.sql", "r") as f:
+            down_sql = f.read()
+        await conn.execute(down_sql)
+
+        # Then create schema
         with open("migrations/001_create_sailings_table.up.sql", "r") as f:
             schema_sql = f.read()
         await conn.execute(schema_sql)
