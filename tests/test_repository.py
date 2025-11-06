@@ -1,6 +1,8 @@
 import pytest
 import asyncpg
+import asyncio
 from datetime import date, timedelta
+from unittest.mock import AsyncMock
 from decimal import Decimal
 from app.repositories.capacity_repository import CapacityRepository
 from app.exceptions import CapacityDatabaseException
@@ -81,3 +83,53 @@ class TestCapacityRepository:
         await conn.close()
         with pytest.raises(CapacityDatabaseException):
             await repo.fetch_capacity(conn, date(2024, 1, 1), date(2024, 3, 31))
+
+    async def test_fetch_capacity_monitor_decorator_success(self):
+        """monitor_query wrapper should allow normal successful execution."""
+        repo = CapacityRepository()
+        mock_conn = AsyncMock()
+        # return rows as dicts; repository does dict(r) so dicts are acceptable
+        mock_conn.fetch.return_value = [
+            {"week_start_date": date(2024, 1, 1), "week_no": 1, "offered_capacity_teu": 20000,
+             "offered_capacity_teu_4w_rolling_avg": 20000}
+        ]
+
+        results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
+
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert results[0]["week_no"] == 1
+
+    async def test_fetch_capacity_monitor_decorator_slow(self):
+        """Simulate a slow fetch to ensure decorator wraps slow executions without breaking."""
+        repo = CapacityRepository()
+        mock_conn = AsyncMock()
+
+        async def slow_fetch(*_args, **_kwargs):
+            # sleep slightly above threshold used by monitor decorator (1.0s)
+            await asyncio.sleep(1.05)
+            return [
+                {"week_start_date": date(2024, 1, 8), "week_no": 2, "offered_capacity_teu": 18000,
+                 "offered_capacity_teu_4w_rolling_avg": 19000}
+            ]
+
+        mock_conn.fetch.side_effect = slow_fetch
+
+        results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
+
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert results[0]["week_no"] == 2
+
+    async def test_fetch_capacity_monitor_decorator_raises_capacity_db_exception_on_closed(self):
+        """If underlying exception text contains 'closed', repository should raise CapacityDatabaseException."""
+        repo = CapacityRepository()
+        mock_conn = AsyncMock()
+
+        async def raise_closed(*_args, **_kwargs):
+            raise Exception("Connection is closed")
+
+        mock_conn.fetch.side_effect = raise_closed
+
+        with pytest.raises(CapacityDatabaseException):
+            await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
