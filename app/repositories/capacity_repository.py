@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 from datetime import date
 import asyncpg
-from app.db.metrics import monitor_query
+from app.core.monitoring import monitor_query
 from app.core import logging
 from app.exceptions import CapacityDatabaseException
 
