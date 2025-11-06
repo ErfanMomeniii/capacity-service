@@ -13,6 +13,7 @@ from app.api.exception_handlers import (
     validation_exception_handler,
 )
 from app.middleware.logging import RequestLoggingMiddleware
+from app.middleware.metrics import MetricsMiddleware
 from app.core.monitoring import router as monitoring_router
 
 load_dotenv()
@@ -33,6 +34,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"])
 app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(MetricsMiddleware)
 
 
 @app.on_event("startup")
