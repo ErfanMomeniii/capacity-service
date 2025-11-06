@@ -1,6 +1,45 @@
-version: "3.8"
+version: "3.9"
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: migrate.Dockerfile
+    container_name: fastapi-migrate
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/capacity_db}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app:ro
+    entrypoint: ["bash", "/app/scripts/load_sample_data.sh"]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:ro
+    command: >
+      bash -c "
+        echo 'Waiting for database...';
+        until nc -z db 5432; do sleep 1; done;
+        echo '✅ Database ready!';
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
   db:
     image: postgres:15-alpine
     container_name: local-postgres
@@ -14,7 +53,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,12 +63,10 @@ services:
     container_name: local-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT}:6379"
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-password}"]
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-password}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5

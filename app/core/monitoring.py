@@ -6,7 +6,7 @@ from prometheus_client import Histogram, Counter, generate_latest, CONTENT_TYPE_
 from fastapi import Request, Response
 from fastapi.routing import APIRouter
 
-logger = logging.get_logger("app.monitoring")
+logger = logging.get_logger(__name__)
 
 REQUEST_DURATION = Histogram(
     "capacity_request_duration_seconds",

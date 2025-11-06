@@ -29,7 +29,8 @@ class CapacityService:
         redis_port = os.getenv("REDIS_PORT", "6379")
         redis_db = int(os.getenv("REDIS_DB", "0"))
         redis_password = os.getenv("REDIS_PASSWORD", None)
-        redis_url = f"redis://{':' + redis_password if redis_password else ''}{redis_host}:{redis_port}/{redis_db}"
+
+        redis_url = f"redis://{':' + redis_password + '@' if redis_password else ''}{redis_host}:{redis_port}/{redis_db}"
 
         try:
             client = aioredis.from_url(

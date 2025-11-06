@@ -20,7 +20,7 @@ load_dotenv()
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logging.setup_logging(LOG_LEVEL)
 
-logger = logging.get_logger("capacity-service")
+logger = logging.get_logger(__name__)
 
 app = FastAPI(
     title="Capacity Service",

@@ -4,7 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core import logging
 from app.core.monitoring import REQUEST_DURATION, REQUEST_COUNT
 
-logger = logging.get_logger("app.middleware.metrics")
+logger = logging.get_logger(__name__)
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
