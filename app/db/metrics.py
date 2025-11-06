@@ -29,8 +29,8 @@ def monitor_query(query_name: str):
                         extra={
                             "query_name": query_name,
                             "duration": duration,
-                            "args": args,
-                            "kwargs": kwargs
+                            "func_args": args,
+                            "func_kwargs": kwargs
                         }
                     )
                 return result
@@ -41,8 +41,8 @@ def monitor_query(query_name: str):
                         "query_name": query_name,
                         "error_msg": str(e),
                         "parameters": {
-                            "args": [str(a) for a in args],  # safe conversion
-                            "kwargs": {k: str(v) for k, v in kwargs.items()}
+                            "func_args": [str(a) for a in args],  # safe conversion
+                            "func_kwargs": {k: str(v) for k, v in kwargs.items()}
                         }
                     }
                 )

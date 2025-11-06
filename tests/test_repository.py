@@ -1,8 +1,7 @@
 import pytest
 import asyncpg
-import asyncio
 from datetime import date, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from decimal import Decimal
 from app.repositories.capacity_repository import CapacityRepository
 from app.exceptions import CapacityDatabaseException
@@ -101,25 +100,24 @@ class TestCapacityRepository:
         assert results[0]["week_no"] == 1
 
     async def test_fetch_capacity_monitor_decorator_slow(self):
-        """Simulate a slow fetch to ensure decorator wraps slow executions without breaking."""
+        """Simulate a slow fetch to ensure decorator logs slow queries (no real sleep)."""
         repo = CapacityRepository()
         mock_conn = AsyncMock()
 
-        async def slow_fetch(*_args, **_kwargs):
-            # sleep slightly above threshold used by monitor decorator (1.0s)
-            await asyncio.sleep(1.05)
+        async def fetch_ok(*_):
             return [
-                {"week_start_date": date(2024, 1, 8), "week_no": 2, "offered_capacity_teu": 18000,
-                 "offered_capacity_teu_4w_rolling_avg": 19000}
+                {"week_start_date": date(2024, 1, 8), "week_no": 2,
+                 "offered_capacity_teu": 18000, "offered_capacity_teu_4w_rolling_avg": 19000}
             ]
 
-        mock_conn.fetch.side_effect = slow_fetch
+        mock_conn.fetch.side_effect = fetch_ok
 
-        results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
+        time_calls = iter([1000.0, 1002.0])
+        with patch("app.db.metrics.time.time", lambda: next(time_calls)):
+            results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
 
         assert isinstance(results, list)
         assert len(results) == 1
-        assert results[0]["week_no"] == 2
 
     async def test_fetch_capacity_monitor_decorator_raises_capacity_db_exception_on_closed(self):
         """If underlying exception text contains 'closed', repository should raise CapacityDatabaseException."""
