@@ -163,7 +163,7 @@ SELECT
     AVG(offered_capacity_teu) OVER (
         ORDER BY week_start_date
         ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
-    )::int AS offered_capacity_teu_4w_rolling_avg
+    )::integer AS offered_capacity_teu_4w_rolling_avg
 FROM weekly_capacity
 ORDER BY week_start_date;
 ```
