@@ -11,8 +11,17 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
+# ------------------------------------------------------------
+# Database Configuration
+# ------------------------------------------------------------
 class DBConfig(BaseModel):
-    """Configuration model for asyncpg database connection pool."""
+    """
+    Configuration model for asyncpg connection pool.
+
+    Provides validation and default values for pool sizing, max queries, and idle connection lifetime.
+    Can be loaded from environment variables for flexible deployment.
+    """
     dsn: str = Field(..., description="PostgreSQL DSN string, e.g., postgres://user:pass@host:port/dbname")
     min_size: int = Field(5, ge=1, description="Minimum number of connections in the pool")
     max_size: int = Field(20, ge=1, description="Maximum number of connections in the pool")
@@ -21,22 +30,32 @@ class DBConfig(BaseModel):
 
     @classmethod
     def from_env(cls) -> "DBConfig":
-        """Load configuration from environment variables."""
+        """Load configuration from environment variables (DATABASE_URL required)."""
         dsn = os.getenv("DATABASE_URL")
         if not dsn:
             raise RuntimeError("DATABASE_URL environment variable is required")
         return cls(dsn=dsn)
 
 
+# ------------------------------------------------------------
+# Database Pool Manager
+# ------------------------------------------------------------
 class DatabasePool:
-    """Manages asyncpg connection pool lifecycle and provides health checks."""
+    """
+    Manages asyncpg connection pool lifecycle and provides health checks.
 
+    Responsibilities:
+    - Initialize and configure connection pool with min/max size and query limits.
+    - Setup per-connection settings (e.g., timezone).
+    - Provide lightweight health check for monitoring systems.
+    - Graceful shutdown of connections on app termination.
+    """
     def __init__(self) -> None:
         self.pool: Optional[Pool] = None
         self.config: Optional[DBConfig] = None
 
     async def initialize(self, config: Optional[DBConfig] = None) -> None:
-        """Initialize the asyncpg connection pool."""
+        """Initialize the asyncpg connection pool and attach per-connection setup."""
         self.config = config or DBConfig.from_env()
         try:
             self.pool = await asyncpg.create_pool(
@@ -57,11 +76,16 @@ class DatabasePool:
 
     @staticmethod
     async def _setup_connection(conn: Connection) -> None:
-        """Setup each connection in the pool (e.g., timezone, settings)."""
+        """Setup each connection (e.g., enforce UTC timezone)."""
         await conn.execute('SET timezone TO "UTC"')
 
     async def check_health(self) -> bool:
-        """Perform a lightweight health check by executing a trivial query."""
+        """
+        Lightweight health check for the database.
+
+        Executes a trivial query to ensure pool is alive and accessible.
+        Returns True if healthy, False otherwise.
+        """
         if not self.pool:
             logger.warning("Database pool not initialized")
             return False
@@ -74,31 +98,44 @@ class DatabasePool:
             return False
 
     async def close(self) -> None:
-        """Gracefully close the pool."""
+        """Gracefully close all connections in the pool."""
         if self.pool:
             await self.pool.close()
             logger.info("🔒 Database pool closed")
 
+
+# Singleton instance of DatabasePool for app-wide use
 db_pool = DatabasePool()
 
+
+# ------------------------------------------------------------
+# FastAPI Lifecycle Helpers
+# ------------------------------------------------------------
 async def init_db_pool(app: FastAPI) -> None:
-    """Attach initialized DB pool to FastAPI app state."""
+    """Attach initialized DB pool to FastAPI app state on startup."""
     await db_pool.initialize()
     app.state.db_pool = db_pool.pool
 
 async def close_db_pool(app: FastAPI) -> None:
-    """Close DB pool on FastAPI shutdown."""
+    """Close DB pool during FastAPI shutdown."""
     await db_pool.close()
 
 
+# ------------------------------------------------------------
+# Dependency for Route Handlers
+# ------------------------------------------------------------
 async def get_conn() -> AsyncGenerator[Connection, Any]:
     """
-    Dependency for routes: yields an asyncpg.Connection.
+    Yield an asyncpg.Connection for route dependencies.
+
     Example usage:
         @router.get("/users")
         async def list_users(conn: Connection = Depends(get_conn)):
             rows = await conn.fetch("SELECT * FROM users")
             return [dict(r) for r in rows]
+
+    Raises:
+        RuntimeError: If database pool is not initialized.
     """
     if db_pool.pool is None:
         raise RuntimeError("Database pool is not initialized")

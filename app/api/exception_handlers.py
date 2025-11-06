@@ -7,10 +7,21 @@ from app.exceptions import CapacityServiceException
 logger = logging.getLogger(__name__)
 
 
+# ------------------------------------------------------------
+# Custom Exception Handlers
+# ------------------------------------------------------------
 async def capacity_exception_handler(
     request: Request,
     exc: CapacityServiceException
 ) -> JSONResponse:
+    """
+    Handles all CapacityServiceException instances.
+
+    Responsibilities:
+    - Logs the error with structured fields for observability.
+    - Returns a standardized JSON payload including error type, message, and status code.
+    - Ensures consistent API error responses across the service.
+    """
     logger.error(
         f"[{exc.__class__.__name__}] {exc.message}",
         extra={
@@ -33,6 +44,14 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError
 ) -> JSONResponse:
+    """
+    Handles FastAPI request validation errors (e.g., invalid query parameters or payloads).
+
+    Responsibilities:
+    - Logs validation errors at WARNING level with structured details.
+    - Returns standardized JSON with error type, detailed validation errors, and HTTP 422 status.
+    - Provides clients with actionable feedback while maintaining consistent error format.
+    """
     logger.warning(
         "Validation error",
         extra={

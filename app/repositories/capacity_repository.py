@@ -10,16 +10,25 @@ logger = logging.get_logger(__name__)
 
 class CapacityRepository:
     """
-    Repository responsible for fetching weekly capacity data from the database.
-    Includes support for monitoring and robust error handling.
+    Repository layer responsible for fetching weekly capacity data from the database.
+
+    Responsibilities:
+    - Encapsulates SQL queries and DB access.
+    - Provides monitoring hooks for query performance.
+    - Handles errors gracefully, translating DB errors into service-specific exceptions.
     """
 
     def __init__(self):
+        # Prepare commonly used SQL queries once to avoid repeated string parsing
         self._prepare_queries()
 
     def _prepare_queries(self) -> None:
         """
-        Prepares the SQL query used to fetch weekly capacity with a 4-week rolling average.
+        Initializes the SQL query for retrieving weekly capacity with a 4-week rolling average.
+
+        - Uses CTEs for intermediate aggregation.
+        - Applies ROW_NUMBER() to deduplicate sailings per week per service.
+        - Calculates a rolling 4-week average using a window function.
         """
         self.capacity_query = """
         WITH base AS (
@@ -59,6 +68,9 @@ class CapacityRepository:
         ORDER BY week_start_date;
         """
 
+    # ------------------------------------------------------------
+    # Core Repository Method
+    # ------------------------------------------------------------
     @monitor_query("fetch_capacity")
     async def fetch_capacity(
             self,
@@ -68,17 +80,21 @@ class CapacityRepository:
             corridor: Optional[str] = None
     ) -> List[Dict]:
         """
-        Fetches weekly capacity data within a given date range.
+        Retrieves weekly capacity data within the specified date range.
+
+        - Returns a list of dictionaries representing each week.
+        - Decorated with a monitoring hook to track query performance.
 
         Raises:
-            CapacityDatabaseException: If a database error occurs or connection is closed.
+            CapacityDatabaseException: For database errors or closed connections.
         """
-
         try:
             rows = await conn.fetch(self.capacity_query, start_date, end_date)
+            # Convert asyncpg Record objects to plain dictionaries for downstream use
             return [dict(r) for r in rows]
 
         except Exception as e:
+            # Structured logging for easier observability
             logger.error(
                 "Database error while fetching capacity",
                 extra={
@@ -89,7 +105,9 @@ class CapacityRepository:
                 }
             )
 
+            # Map low-level DB errors to service-specific exception for API consistency
             if isinstance(e, (asyncpg.PostgresError, asyncpg.InterfaceError)) or "closed" in str(e).lower():
                 raise CapacityDatabaseException(f"Database operation failed: {e}") from e
 
+            # Reraise unexpected exceptions (could be programming errors)
             raise

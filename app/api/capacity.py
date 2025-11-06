@@ -20,7 +20,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Capacity"])
 
 
+# ------------------------------------------------------------
+# Response Model
+# ------------------------------------------------------------
 class CapacityRow(BaseModel):
+    """
+    Pydantic model representing a single row of weekly capacity data.
+
+    Fields:
+    - week_start_date: ISO date string for the start of the week
+    - week_no: Week number (ISO standard)
+    - offered_capacity_teu: Offered capacity for the week
+    - offered_capacity_teu_4w_rolling_avg: 4-week rolling average of offered capacity
+    """
     model_config = ConfigDict(from_attributes=True)
     week_start_date: str
     week_no: int
@@ -28,14 +40,27 @@ class CapacityRow(BaseModel):
     offered_capacity_teu_4w_rolling_avg: int
 
 
+# ------------------------------------------------------------
+# Capacity Endpoint
+# ------------------------------------------------------------
 @router.get("/capacity", response_model=List[CapacityRow])
 async def get_capacity(
     date_from: Annotated[str, Query(..., regex=r"^\d{4}-\d{2}-\d{2}$")],
     date_to: Annotated[str, Query(..., regex=r"^\d{4}-\d{2}-\d{2}$")],
     conn: Annotated[asyncpg.Connection, Depends(get_conn)],
 ):
-    """Returns weekly offered capacity and rolling averages."""
+    """
+    Returns weekly offered capacity and 4-week rolling averages for a given date range.
 
+    Workflow:
+    1. Validate and parse query parameters as ISO dates.
+    2. Check for logical errors (start date > end date).
+    3. Delegate to `CapacityService` for business logic including caching and DB queries.
+    4. Catch and translate database or unexpected errors into standardized API exceptions.
+    5. Serialize and return response using `CapacityRow` Pydantic model for consistency.
+    """
+
+    # Parse query parameters into date objects
     try:
         start = datetime.strptime(date_from, "%Y-%m-%d").date()
         end = datetime.strptime(date_to, "%Y-%m-%d").date()
@@ -45,15 +70,20 @@ async def get_capacity(
     if start > end:
         raise CapacityValidationException("'date_from' must be <= 'date_to'")
 
+    # Initialize service layer
     capacity_service = CapacityService()
 
+    # Fetch capacity data with error handling
     try:
         rows = await capacity_service.get_capacity_rolling_average(conn, start, end)
     except asyncpg.PostgresError as exc:
+        # Known database-related errors
         raise CapacityDatabaseException("Database operation failed") from exc
     except Exception as exc:
+        # Unknown/unexpected errors
         raise CapacityUnexpectedException("Unhandled server error") from exc
 
+    # Serialize response consistently using Pydantic model
     return [
         CapacityRow(
             week_start_date=(
