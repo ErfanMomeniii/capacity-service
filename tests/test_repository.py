@@ -87,7 +87,6 @@ class TestCapacityRepository:
         """monitor_query wrapper should allow normal successful execution."""
         repo = CapacityRepository()
         mock_conn = AsyncMock()
-        # return rows as dicts; repository does dict(r) so dicts are acceptable
         mock_conn.fetch.return_value = [
             {"week_start_date": date(2024, 1, 1), "week_no": 1, "offered_capacity_teu": 20000,
              "offered_capacity_teu_4w_rolling_avg": 20000}
@@ -124,7 +123,7 @@ class TestCapacityRepository:
             except StopIteration:
                 return 1002.0
 
-        with patch("app.db.metrics.time.time", side_effect=safe_time):
+        with patch("app.core.monitoring.time.time", side_effect=safe_time):
             results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
 
         assert len(results) == 1
