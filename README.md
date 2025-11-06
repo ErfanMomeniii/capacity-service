@@ -16,7 +16,7 @@
 
 ---
 
-# 🧭 Overview
+## 🧭 Overview
 
 The **Capacity Service** is a high-performance, containerized API built to calculate **offered shipping capacity (TEU)** for the **China Main ↔ North Europe Main** corridor.  
 It aggregates sailing-level data, computes weekly offered capacity, and provides a **4-week rolling average** for operational insights.
@@ -25,7 +25,7 @@ This service is engineered using **FastAPI**, **asyncpg**, and **Redis**, follow
 
 ---
 
-# ⚙️ Key Features
+## ⚙️ Key Features
 
 - **Weekly Capacity Computation** – Aggregates sailing-level TEU data per corridor and week.
 - **4-Week Rolling Average** – Provides a short-term performance trend.
@@ -36,7 +36,7 @@ This service is engineered using **FastAPI**, **asyncpg**, and **Redis**, follow
 
 ---
 
-# 🧩 System Architecture
+## 🧩 System Architecture
 
 ### 🔹 API Layer
 - Exposes endpoints using FastAPI.
@@ -60,7 +60,7 @@ This service is engineered using **FastAPI**, **asyncpg**, and **Redis**, follow
 
 ---
 
-# 🧾 Dataset
+## 🧾 Dataset
 
 The service uses sailing-level data for the **China Main ↔ North Europe Main** corridor.
 
@@ -76,7 +76,7 @@ The service uses sailing-level data for the **China Main ↔ North Europe Main**
 
 ---
 
-#  📡 API Specification
+##  📡 API Specification
 ### Health Check
 ```
 GET /health
@@ -124,7 +124,7 @@ Response Example
 ]
 ```
 
-# 🧮 SQL Query Logic
+## 🧮 SQL Query Logic
 
 The query handles:
 
@@ -168,7 +168,7 @@ FROM weekly_capacity
 ORDER BY week_start_date;
 ```
 
-# 🐳 Dockerized Setup
+## 🐳 Dockerized Setup
 
 The project uses Docker Compose for full-stack orchestration:
 
@@ -180,7 +180,7 @@ The project uses Docker Compose for full-stack orchestration:
 
 * migrate: Data loading/migration script executed before app startup
 
-# 🚀 Usage Guide
+## 🚀 Usage Guide
 
 ### Start Services
 ```bash
@@ -197,7 +197,7 @@ docker-compose down
 curl "http://localhost:8000/capacity?date_from=2025-08-11&date_to=2025-08-25"
 ```
 
-# 🧪 Testing & Coverage
+## 🧪 Testing & Coverage
 
 The test suite validates:
 
@@ -214,7 +214,7 @@ Run tests:
 pytest --cov=app --cov-report=term-missing
 ```
 
-## ✅ Coverage Summary
+### ✅ Coverage Summary
 
 | Module                             | Coverage                                        |
 | ---------------------------------- | ----------------------------------------------- |
@@ -225,7 +225,7 @@ pytest --cov=app --cov-report=term-missing
 | Core Modules (Logging, Monitoring) | **100%**                                        |
 | **Total**                          | **90%** overall coverage                        |
 
-# 📈 Observability
+## 📈 Observability
 
 * Structured Logging: Contextual logs per request.
 
@@ -233,7 +233,7 @@ pytest --cov=app --cov-report=term-missing
 
 * Health checks: DB and Redis readiness checks via Docker Compose.
 
-# 🔮 Future Enhancements
+## 🔮 Future Enhancements
 
 * Extend to multiple corridors.
 
@@ -241,6 +241,6 @@ pytest --cov=app --cov-report=term-missing
 
 * Integrate Grafana dashboards for real-time observability.
 
-# 👤 Contact
+## 👤 Contact
 
 Erfan Momeni – erfamm5@gmail.com
