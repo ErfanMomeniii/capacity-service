@@ -99,7 +99,7 @@ class TestCapacityRepository:
         assert len(results) == 1
         assert results[0]["week_no"] == 1
 
-    async def test_fetch_capacity_monitor_decorator_slow():
+    async def test_fetch_capacity_monitor_decorator_slow(self):
         """Simulate a slow query without real sleep — ensure monitor logs slow queries safely."""
         repo = CapacityRepository()
         mock_conn = AsyncMock()
