@@ -63,7 +63,7 @@ jobs:
             -h localhost \
             -U ${{ env.POSTGRES_USER }} \
             -d ${{ env.POSTGRES_DB }} \
-            -f db/schema.sql
+            -f migrations/001_create_sailings_table.up.sql
 
       - name: Run tests
         env:

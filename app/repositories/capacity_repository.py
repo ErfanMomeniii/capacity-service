@@ -73,7 +73,6 @@ class CapacityRepository:
         Raises:
             CapacityDatabaseException: If a database error occurs or connection is closed.
         """
-        import asyncpg
 
         try:
             rows = await conn.fetch(self.capacity_query, start_date, end_date)
@@ -83,7 +82,7 @@ class CapacityRepository:
             logger.error(
                 "Database error while fetching capacity",
                 extra={
-                    "error_msg": str(e),  # safe key
+                    "error_msg": str(e),
                     "start_date": str(start_date),
                     "end_date": str(end_date),
                     "corridor": corridor

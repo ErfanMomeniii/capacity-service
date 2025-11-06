@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS sailings CASCADE;
-
 CREATE TABLE sailings (
     id SERIAL PRIMARY KEY,
     origin TEXT NOT NULL,
@@ -13,7 +11,6 @@ CREATE TABLE sailings (
     offered_capacity_teu INTEGER NOT NULL CHECK (offered_capacity_teu >= 0)
 );
 
--- Indexes for faster filtering
 CREATE INDEX idx_sailings_origin_destination
     ON sailings (origin, destination);
 

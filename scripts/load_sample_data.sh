@@ -91,7 +91,7 @@ END
 echo "🚀 Applying schema..."
 TABLE_EXISTS=$(QUIET=true run_psql "$DATABASE_URL" -t -A -c "SELECT 1 FROM information_schema.tables WHERE table_name='sailings';" || echo 0)
 if [[ -z "$TABLE_EXISTS" ]]; then
-    cat db/schema.sql | run_psql "$DATABASE_URL"
+    cat migrations/001_create_sailings_table.up.sql | run_psql "$DATABASE_URL"
     echo "✅ Schema applied."
 else
     echo "✅ Schema already exists, skipping."
