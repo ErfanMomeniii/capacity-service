@@ -1,67 +1,68 @@
 # Capacity Service – China Main ↔ North Europe Main
-## Overview
 
-Capacity Service is a high-performance, containerized API designed to compute offered shipping capacity (TEU) on the China Main ↔ North Europe Main corridor. It aggregates sailing-level raw data, calculates weekly offered capacity, and provides a 4-week rolling average.
+## 📘 Table of Contents
+- [Overview](#-Overview)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Dataset](#-dataset)
+- [API Specification](#-api-specification)
+- [SQL Query Logic](#-sql-query-logic)
+- [Dockerized Setup](#-dockerized-setup)
+- [Usage Guide](#-usage-guide)
+- [Testing & Coverage](#-testing--coverage)
+- [Observability](#-observability)
+- [Future Enhancements](#-future-enhancements)
+- [Contact](#-contact)
 
-The service is built with FastAPI, asyncpg, and Redis caching, following enterprise-grade patterns for scalability, observability, and maintainability.
+---
 
-## Features
+# 🧭 Overview
 
-* Weekly Capacity Computation: Aggregates sailing-level TEU data per corridor and week.
+The **Capacity Service** is a high-performance, containerized API built to calculate **offered shipping capacity (TEU)** for the **China Main ↔ North Europe Main** corridor.  
+It aggregates sailing-level data, computes weekly offered capacity, and provides a **4-week rolling average** for operational insights.
 
-* 4-Week Rolling Average: Provides rolling average to track short-term trends.
+This service is engineered using **FastAPI**, **asyncpg**, and **Redis**, following **enterprise-grade design principles** emphasizing scalability, observability, and maintainability.
 
-* RESTful API: /capacity endpoint with proper input validation and OpenAPI docs.
+---
 
-* Caching Layer: Optional Redis caching to reduce database load and improve performance.
+# ⚙️ Key Features
 
-* Observability: Structured logging, request metrics, and Prometheus counters for cache hits/misses.
+- **Weekly Capacity Computation** – Aggregates sailing-level TEU data per corridor and week.
+- **4-Week Rolling Average** – Provides a short-term performance trend.
+- **RESTful API** – `/capacity` endpoint with strong validation and OpenAPI documentation.
+- **Caching Layer** – Optional Redis caching to reduce database load and accelerate responses.
+- **Observability** – Structured logging, Prometheus metrics, and cache hit/miss counters.
+- **Dockerized Deployment** – Complete stack setup with PostgreSQL, Redis, and migration support.
 
-* Dockerized Deployment: Full container orchestration with PostgreSQL, Redis, and migration scripts.
+---
 
+# 🧩 System Architecture
 
-## Architecture
-### Components
+### 🔹 API Layer
+- Exposes endpoints using FastAPI.
+- Includes input validation, exception handling, and CORS middleware.
 
-* API Layer
+### 🔹 Service Layer (`CapacityService`)
+- Implements business logic and caching.
+- Manages data consistency and delegates repository queries.
 
-  * FastAPI endpoints with exception handling and input validation.
+### 🔹 Repository Layer (`CapacityRepository`)
+- Executes optimized SQL queries for weekly aggregation and rolling averages.
+- Provides fault-tolerant database access via `asyncpg`.
 
-  * Middleware for logging, metrics, and CORS handling.
+### 🔹 Database Layer (PostgreSQL)
+- Stores sailing-level data for corridor capacity analytics.
+- Handles deduplication, weekly aggregation, and rolling computation.
 
-* Service Layer (CapacityService)
+### 🔹 Cache Layer (Redis)
+- Stores computed results with configurable TTL (default: 6 hours).
+- Tracks performance metrics for cache usage and hits/misses.
 
-  * Handles business logic, Redis caching, and delegating queries to the repository.
+---
 
-  * Ensures data consistency and validation.
+# 🧾 Dataset
 
-* Repository Layer (CapacityRepository)
-
-  * Executes SQL queries for weekly capacity with deduplication and rolling averages.
-
-  * Includes monitoring, robust error handling, and asynchronous PostgreSQL access.
-
-* Database Layer (PostgreSQL)
-
-  * Stores sailing-level data.
-
-  * SQL query computes:
-
-    * Weekly aggregation per corridor
-
-    * Deduplication of vessel-service-week combinations
-
-    * 4-week rolling average
-
-* Cache Layer (Redis)
-
-  * Stores query results for configurable TTL (default 6 hours).
-
-  * Tracks cache hits/misses for observability.
-
-## Dataset
-
-The dataset contains sailing-level information for China Main ↔ North Europe Main. Key columns:
+The service uses sailing-level data for the **China Main ↔ North Europe Main** corridor.
 
 | Column                                     | Description                            |
 | ------------------------------------------ | -------------------------------------- |
@@ -73,7 +74,9 @@ The dataset contains sailing-level information for China Main ↔ North Europe M
 | `destination_service_version_and_master`   | Destination service version identifier |
 | `offered_capacity_teu`                     | Offered capacity in TEU                |
 
-## API Specification
+---
+
+#  📡 API Specification
 ### Health Check
 ```
 GET /health
@@ -121,15 +124,15 @@ Response Example
 ]
 ```
 
-## SQL Query Overview
+# 🧮 SQL Query Logic
 
 The query handles:
 
-* Deduplication of vessel-service-week combinations
+- Deduplication of vessel-service-week combinations
 
-* Weekly TEU aggregation
+- Weekly TEU aggregation
 
-* 4-week rolling average computation
+- 4-week rolling average computation
 
 ```sql
 WITH base AS (
@@ -164,3 +167,80 @@ SELECT
 FROM weekly_capacity
 ORDER BY week_start_date;
 ```
+
+# 🐳 Dockerized Setup
+
+The project uses Docker Compose for full-stack orchestration:
+
+* app: FastAPI application
+
+* db: PostgreSQL with health checks and persistent volume pgdata
+
+* redis: Redis caching server with password protection
+
+* migrate: Data loading/migration script executed before app startup
+
+# 🚀 Usage Guide
+
+### Start Services
+```bash
+docker-compose up --build
+```
+
+### Stop Services
+```bash
+docker-compose down
+```
+
+### Access API
+```bash
+curl "http://localhost:8000/capacity?date_from=2025-08-11&date_to=2025-08-25"
+```
+
+# 🧪 Testing & Coverage
+
+The test suite validates:
+
+- API responses and input validation
+
+- Business logic and caching layer behavior
+
+- SQL query correctness and aggregation
+
+- Error handling and monitoring instrumentation
+
+Run tests:
+```bash
+pytest --cov=app --cov-report=term-missing
+```
+
+## ✅ Coverage Summary
+
+| Module                             | Coverage                                        |
+| ---------------------------------- | ----------------------------------------------- |
+| API & Middleware                   | **100%** (exception handlers, metrics, logging) |
+| Repository Layer                   | **95%**                                         |
+| Service Layer                      | **80%**                                         |
+| Database Pool                      | **76%**                                         |
+| Core Modules (Logging, Monitoring) | **100%**                                        |
+| **Total**                          | **90%** overall coverage                        |
+
+# 📈 Observability
+
+* Structured Logging: Contextual logs per request.
+
+* Prometheus Metrics: Cache hit/miss counters.
+
+* Health checks: DB and Redis readiness checks via Docker Compose.
+
+# 🔮 Future Enhancements
+
+* Extend to multiple corridors.
+
+* Add forecasting models for capacity prediction.
+
+* Integrate Grafana dashboards for real-time observability.
+
+# 👤 Contact
+
+Erfan Momeni – erfamm5@gmail.com
