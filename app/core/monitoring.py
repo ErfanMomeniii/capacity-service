@@ -30,6 +30,11 @@ CACHE_MISSES_COUNT = Counter(
     "Cache miss count"
 )
 
+QUERY_DURATION = Histogram(
+    "capacity_query_duration_seconds",
+    "Database query duration (seconds)",
+    ["query_name"],
+)
 
 def monitor_query(query_name: str):
     """Decorator to measure query execution time and log slow queries."""

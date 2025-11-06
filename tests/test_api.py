@@ -46,3 +46,9 @@ class TestCapacityAPI:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 0
+
+    def test_metrics_endpoint_exposes_data(self, app_client):
+        """Ensure /metrics returns Prometheus metrics output."""
+        response = app_client.get("/metrics")
+        assert response.status_code == 200
+        assert "capacity_request_total" in response.text
