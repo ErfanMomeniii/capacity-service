@@ -99,25 +99,36 @@ class TestCapacityRepository:
         assert len(results) == 1
         assert results[0]["week_no"] == 1
 
-    async def test_fetch_capacity_monitor_decorator_slow(self):
-        """Simulate a slow fetch to ensure decorator logs slow queries (no real sleep)."""
+    async def test_fetch_capacity_monitor_decorator_slow():
+        """Simulate a slow query without real sleep — ensure monitor logs slow queries safely."""
         repo = CapacityRepository()
         mock_conn = AsyncMock()
 
         async def fetch_ok(*_):
             return [
-                {"week_start_date": date(2024, 1, 8), "week_no": 2,
-                 "offered_capacity_teu": 18000, "offered_capacity_teu_4w_rolling_avg": 19000}
+                {
+                    "week_start_date": date(2024, 1, 8),
+                    "week_no": 2,
+                    "offered_capacity_teu": 18000,
+                    "offered_capacity_teu_4w_rolling_avg": 19000,
+                }
             ]
 
         mock_conn.fetch.side_effect = fetch_ok
 
         time_calls = iter([1000.0, 1002.0])
-        with patch("app.db.metrics.time.time", lambda: next(time_calls)):
+
+        def safe_time():
+            try:
+                return next(time_calls)
+            except StopIteration:
+                return 1002.0
+
+        with patch("app.db.metrics.time.time", side_effect=safe_time):
             results = await repo.fetch_capacity(mock_conn, date(2024, 1, 1), date(2024, 3, 31))
 
-        assert isinstance(results, list)
         assert len(results) == 1
+        assert results[0]["week_no"] == 2
 
     async def test_fetch_capacity_monitor_decorator_raises_capacity_db_exception_on_closed(self):
         """If underlying exception text contains 'closed', repository should raise CapacityDatabaseException."""
